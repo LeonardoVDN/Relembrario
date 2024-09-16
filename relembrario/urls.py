@@ -1,6 +1,6 @@
 from django.urls import path
-from relembrario.views import initial_page
+from relembrario.views import estudantes
 
 urlpatterns = [
-    path('', initial_page)
+    path('estudantes/',estudantes)
 ]

@@ -1,7 +1,10 @@
-from django.shortcuts import render
-from django.http import HttpResponse
-# Create your views here.
+from django.http import JsonResponse
 
-
-def initial_page(request):
-    return render(request, 'relembrario/index.html')
+def estudantes(request):
+    if request.method == 'GET':
+        estudantes = [
+            {'nome': 'John Doe', 'idade': 25},
+            {'nome': 'Jane Smith', 'idade': 22},
+            {'nome': 'Alice Johnson', 'idade': 27}
+        ]
+        return JsonResponse(estudantes, safe=False)
