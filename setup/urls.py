@@ -16,8 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from relembrario.views import LembrancasViewSet, TagViewSet
+from rest_framework import routers
+
+router = routers.DefaultRouter()
+router.register('lembrancas',LembrancasViewSet,basename='Lembrancas')
+router.register('tags',TagViewSet,basename='Tags')
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('relembrario.urls')),
+    path('', include(router.urls)),
 ]

@@ -1,6 +1,6 @@
 from django.urls import path
-from relembrario.views import estudantes
+from relembrario.views import LembrancasViewSet
 
 urlpatterns = [
-    path('estudantes/',estudantes)
+    path()
 ]
