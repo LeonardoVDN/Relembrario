@@ -1,6 +1,6 @@
 from django.urls import path
-from relembrario.views import initial_page
+from relembrario.views import LembrancasViewSet
 
 urlpatterns = [
-    path('', initial_page)
+    path()
 ]

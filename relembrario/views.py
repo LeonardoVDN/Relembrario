@@ -1,7 +1,11 @@
-from django.shortcuts import render
-from django.http import HttpResponse
-# Create your views here.
+from relembrario.models import Lembrancas, Tag
+from relembrario.serializers import LembrancasSerializer, TagSerializer
+from rest_framework import viewsets
 
+class LembrancasViewSet(viewsets.ModelViewSet):
+    queryset = Lembrancas.objects.all()
+    serializer_class = LembrancasSerializer
 
-def initial_page(request):
-    return render(request, 'relembrario/index.html')
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
