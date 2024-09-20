@@ -1,6 +1,5 @@
 [build]
-builder = "heroku/buildpacks:20"
 buildpacks = [
-  "heroku-community/apt",
+  "https://github.com/heroku/heroku-buildpack-apt",
   "heroku/python"
 ]
