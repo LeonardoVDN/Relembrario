@@ -1,39 +1,59 @@
 <template>
-  <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
-  </div>
-</template>
-
-<script>
-// @ is an alias to /src
-    import { getAPI } from '../axios-api'
-
-    export default {
-      name: "Blog",
-      data(){
-        return {
-          APIdata: [],
-          loading: true,
-          error: null
-        }
-      }
-
-
-      created () {   
-          getAPI.get('/blog/', )
-              .then(response => {
-                console.log('Deu certo')
-                this.APIdata = response.data
-                this.loading = false
-                this.error = null
-              })
-              .catch(error => {
-                console.error('Deu ruim', error)
-                this.loading = false
-                this.error = error.message
-              })
-        }
-      }
-
-</script>
+    <div class="home-view">
+      <!-- Sidebar à esquerda -->
+      <side-menu-component class="side-menu" />
+  
+      <!-- Conteúdo das Memórias -->
+      <div class="content">
+        <h1>Minhas Lembranças</h1>
+        <div class="memories-list">
+          <!-- O componente CardMemory vai lidar com suas próprias requisições -->
+          <card-memory />
+        </div>
+      </div>
+    </div>
+  </template>
+  
+  <script>
+  // Importando os componentes
+  import SideMenuComponent from "@/components/SideMenuComponent.vue";
+  import CardMemory from "@/components/CardMemory.vue";
+  
+  export default {
+    name: "HomeView",
+    components: {
+      SideMenuComponent,
+      CardMemory,
+    },
+  };
+  </script>
+  
+  <style scoped>
+  .home-view {
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  .side-menu {
+    width: 250px;
+    background-color: #f5f5f5;
+  }
+  
+  .content {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #ffffff;
+  }
+  
+  h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .memories-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-gap: 20px;
+  }
+  </style>
+  
