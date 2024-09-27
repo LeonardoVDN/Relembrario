@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from relembrario.views import LembrancasViewSet, TagViewSet
+from relembrario.views import LembrancasViewSet, TagViewSet, RegisterView
 from rest_framework import routers
 
 router = routers.DefaultRouter()
@@ -27,4 +27,5 @@ router.register('tags',TagViewSet,basename='Tags')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include(router.urls)),
+    path('api/', include('relembrario.urls')),
 ]
