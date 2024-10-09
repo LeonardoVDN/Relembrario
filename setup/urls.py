@@ -26,6 +26,6 @@ router.register('tags',TagViewSet,basename='Tags')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include(router.urls)),
+    path('api/', include(router.urls)),
     path('api/', include('relembrario.urls')),
 ]
