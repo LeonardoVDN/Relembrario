@@ -14,10 +14,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 class LembrancasViewSet(viewsets.ModelViewSet):
     queryset = Lembrancas.objects.all()
     serializer_class = LembrancasSerializer
+    permission_classes = [IsAuthenticated]
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = [IsAuthenticated]
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()

@@ -13,11 +13,6 @@ const routes = [
     component: HomeView,
     meta: { requiresAuth: true }
   },
-  {
-    path: '/about',
-    name: 'about',
-    component: () => import('@/views/AboutView.vue')
-  },
   // Rotas públicas
   {
     path: '/login',
