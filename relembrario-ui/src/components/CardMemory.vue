@@ -1,9 +1,28 @@
 <!-- src/components/CardMemory.vue -->
 <template>
   <div class="lembrancas-container">
-    <div v-if="lembrancas.length === 0" class="text-center">
+    <!-- Estado de Carregamento -->
+    <div v-if="isLoading" class="text-center">
       <p>Carregando lembranças...</p>
     </div>
+
+    <!-- Estado de Erro -->
+    <div v-else-if="error" class="text-center">
+      <p>Não foi possível carregar as lembranças.</p>
+      <button @click="$emit('open-add-memory')" class="btn btn-primary mt-3">
+        Adicionar Memória
+      </button>
+    </div>
+
+    <!-- Estado Sem Memórias -->
+    <div v-else-if="lembrancas.length === 0" class="text-center">
+      <p>Não há lembranças.</p>
+      <button @click="$emit('open-add-memory')" class="btn btn-primary mt-3">
+        Adicionar Memória
+      </button>
+    </div>
+
+    <!-- Lista de Memórias -->
     <div v-else>
       <div v-for="lembranca in lembrancas" :key="lembranca.id" class="card shadow-sm mb-4">
         <div class="card-body">
@@ -47,13 +66,17 @@ export default {
   data() {
     return {
       lembrancas: [],
+      isLoading: false,
+      error: false,
     };
   },
   methods: {
+    // Formata a data para exibição
     formatDate(date) {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date(date).toLocaleDateString("pt-BR", options);
     },
+    // Busca o nome da tag pelo ID
     fetchTagName(tagId) {
       return http.get(`/tags/${tagId}/`)
         .then(response => response.data.nome)
@@ -62,7 +85,10 @@ export default {
           return `Tag ${tagId}`;
         });
     },
+    // Busca todas as lembranças e seus nomes de tags
     async fetchLembrancas() {
+      this.isLoading = true;
+      this.error = false;
       try {
         const response = await http.get("/lembrancas/");
         const lembrancas = response.data;
@@ -79,6 +105,9 @@ export default {
         this.lembrancas = updatedLembrancas;
       } catch (error) {
         console.error("Erro ao buscar lembranças:", error);
+        this.error = true;
+      } finally {
+        this.isLoading = false;
       }
     },
   },
@@ -114,5 +143,14 @@ export default {
 }
 .badge {
   font-size: 0.8rem;
+}
+.text-center {
+  text-align: center;
+}
+.btn-primary {
+  /* Personalize conforme necessário */
+}
+.mt-3 {
+  margin-top: 1rem;
 }
 </style>

@@ -22,8 +22,10 @@
       <!-- Botões de ação -->
       <div v-if="!isCollapsed" class="actions px-3 mb-3">
         <div class="mb-3 align-items-center">  
-          <add-memory-modal @memory-added="refreshMemories" />
           <add-tag-component @tag-added="handleTagAdded" />
+          <div class="mb-3">
+            <add-memory-modal ref="addMemoryModal" @memory-added="refreshMemories" />
+          </div>
           <router-link to="/logout" class="ml-auto">
             <button type="button" class="btn btn-danger">Sair</button>
           </router-link>
@@ -32,7 +34,6 @@
 
       <!-- Lista de Categorias -->
       <div class="categories px-3">
-        <button class="btn btn-danger w-100 mb-3" @click="removeApp">Remover App</button>
         <ul class="list-group">
           <li
             v-for="(categoria, index) in categorias"
@@ -52,7 +53,7 @@
 
       <!-- Lista de Memórias -->
       <div class="memories-list">
-        <card-memory ref="cardMemory" />
+        <card-memory @open-add-memory="openAddMemoryModal" ref="cardMemory" />
       </div>
     </div>
   </div>
@@ -72,45 +73,30 @@ export default {
   },
   data() {
     return {
-      // Dados do SideMenuComponent
       searchQuery: "",
       isCollapsed: false,
       categorias: ["Categoria 0", "Categoria 1", "Categoria 2", "Categoria 3"],
     };
   },
   methods: {
-    // Métodos do HomeView
     refreshMemories() {
-      // Chama o método 'fetchLembrancas' do componente 'CardMemory.vue' para atualizar a lista
+      // Atualiza a lista de memórias chamando o método fetchLembrancas do CardMemory
       if (this.$refs.cardMemory) {
         this.$refs.cardMemory.fetchLembrancas();
       }
       console.log("Memória adicionada. Lista de memórias atualizada.");
     },
     handleTagAdded() {
-      // Lógica para lidar com a adição de uma nova tag
       console.log("Tag adicionada. Atualizar tags disponíveis.");
-      // Os modais que buscam tags novamente ao serem abertos já refletirão a nova tag
     },
-
-    // Métodos do SideMenuComponent
     toggleSidebar() {
       this.isCollapsed = !this.isCollapsed;
     },
-    addMemoria() {
-      // Função para adicionar memória
-      console.log("Adicionar Memória");
-      // Você pode reutilizar o componente AddMemoryModal aqui, se aplicável
-    },
-    addCategoria() {
-      // Função para adicionar categoria
-      console.log("Adicionar Categoria");
-      // Implementar lógica conforme necessário
-    },
-    removeApp() {
-      // Função para remover app
-      console.log("Remover App");
-      // Implementar lógica conforme necessário
+    openAddMemoryModal() {
+      // Abre o modal de adicionar memória
+      if (this.$refs.addMemoryModal) {
+        this.$refs.addMemoryModal.openModal();
+      }
     },
   },
 };
@@ -221,7 +207,7 @@ h1 {
   margin-left: auto;
 }
 
-/* Ajustes adicionais para garantir que o conteúdo não seja ocultado quando a sidebar estiver colapsada */
+/* Ajustes para conteúdo quando a sidebar estiver colapsada */
 .sidebar.collapsed + .content {
   margin-left: 60px;
 }

@@ -45,7 +45,7 @@
               <button type="submit" class="btn btn-primary w-100">Entrar</button>
 
               <!-- Mensagem de feedback -->
-              <div v-if="message" class="alert mt-3 alert-danger">
+              <div v-if="message" class="alert mt-3" :class="alertClass">
                 {{ message }}
               </div>
             </form>
@@ -70,22 +70,23 @@ export default {
         username: '',
         password: ''
       },
-      message: ''
+      message: '',
+      alertClass: 'alert-danger'
     };
   },
   methods: {
-    handleLogin() {
-      AuthService.login(this.user)
-        .then(() => {
-          this.$router.push('/');
-        })
-        .catch(error => {
-          if (error.response && error.response.data) {
-            this.message = 'Credenciais inválidas.';
-          } else {
-            this.message = 'Ocorreu um erro ao tentar fazer login.';
-          }
-        });
+    async handleLogin() {
+      this.message = ''; // Limpa mensagens anteriores
+      try {
+        await AuthService.login(this.user);
+        this.$router.push('/');
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          this.message = 'Credenciais inválidas.';
+        } else {
+          this.message = 'Ocorreu um erro ao tentar fazer login.';
+        }
+      }
     }
   }
 };

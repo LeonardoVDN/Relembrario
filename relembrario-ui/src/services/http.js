@@ -22,7 +22,12 @@ http.interceptors.response.use(
   async error => {
     const originalRequest = error.config;
 
-    if (error.response.status === 401 && !originalRequest._retry) {
+    // Verifica se a resposta é 401 e se a requisição original não é para login ou refresh
+    const isAuthRoute = originalRequest.url.includes('login/') ||
+                       originalRequest.url.includes('register/') ||
+                       originalRequest.url.includes('token/refresh/');
+                       
+    if (error.response.status === 401 && !originalRequest._retry && !isAuthRoute) {
       originalRequest._retry = true;
 
       const user = JSON.parse(localStorage.getItem('user'));
