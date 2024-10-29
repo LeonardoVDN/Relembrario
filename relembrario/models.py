@@ -16,8 +16,11 @@ class Lembrancas(models.Model):
     def __str__(self):
         return self.titulo
 
+
 class Tag(models.Model):
     nome = models.CharField(max_length=50)
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)  # Adicione este campo
 
     def __str__(self):
         return self.nome
+    

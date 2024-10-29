@@ -8,12 +8,21 @@ class LembrancasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lembrancas
         fields = '__all__'
+        read_only_fields = ['usuario']
 
+    def create(self, validated_data):
+        validated_data['usuario'] = self.context['request'].user
+        return super().create(validated_data)
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = '__all__'
+        read_only_fields = ['usuario']
+
+    def create(self, validated_data):
+        validated_data['usuario'] = self.context['request'].user
+        return super().create(validated_data)
 
 
 class RegisterSerializer(serializers.ModelSerializer):
