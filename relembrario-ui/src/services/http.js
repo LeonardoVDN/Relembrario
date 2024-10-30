@@ -4,19 +4,21 @@ import axios from 'axios';
 
 const http = axios.create({
   baseURL: 'http://localhost:8000/api/',
-  headers: {
-    'Content-Type': 'application/json'
-  }
 });
 
-http.interceptors.request.use(config => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (user && user.access) {
-    config.headers['Authorization'] = 'Bearer ' + user.access;
-  }
-  return config;
-});
+// Interceptor para adicionar o token de acesso às requisições
+http.interceptors.request.use(
+  config => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user && user.access) {
+      config.headers.Authorization = `Bearer ${user.access}`;
+    }
+    return config;
+  },
+  error => Promise.reject(error)
+);
 
+// Interceptor para lidar com erros de resposta
 http.interceptors.response.use(
   response => response,
   async error => {
@@ -24,10 +26,10 @@ http.interceptors.response.use(
 
     // Verifica se a resposta é 401 e se a requisição original não é para login ou refresh
     const isAuthRoute = originalRequest.url.includes('login/') ||
-                       originalRequest.url.includes('register/') ||
-                       originalRequest.url.includes('token/refresh/');
-                       
-    if (error.response.status === 401 && !originalRequest._retry && !isAuthRoute) {
+                        originalRequest.url.includes('register/') ||
+                        originalRequest.url.includes('token/refresh/');
+
+    if (error.response && error.response.status === 401 && !originalRequest._retry && !isAuthRoute) {
       originalRequest._retry = true;
 
       const user = JSON.parse(localStorage.getItem('user'));
@@ -42,7 +44,7 @@ http.interceptors.response.use(
           localStorage.setItem('user', JSON.stringify(user));
 
           // Atualiza o header e reenvia a requisição original
-          originalRequest.headers['Authorization'] = 'Bearer ' + response.data.access;
+          originalRequest.headers.Authorization = `Bearer ${user.access}`;
           return http(originalRequest);
         } catch (err) {
           // Se o refresh falhar, redireciona para login

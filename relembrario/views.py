@@ -2,8 +2,8 @@ from relembrario.models import Lembrancas, Tag
 from relembrario.serializers import LembrancasSerializer, TagSerializer
 from rest_framework import viewsets
 from django.contrib.auth.models import User
-from rest_framework import generics
-from .serializers import RegisterSerializer
+from rest_framework import generics, permissions
+from .serializers import RegisterSerializer, UserSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -11,6 +11,13 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import PermissionDenied
+
+class UserProfileView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get_object(self):
+        return self.request.user
 
 class LembrancasViewSet(viewsets.ModelViewSet):
     serializer_class = LembrancasSerializer

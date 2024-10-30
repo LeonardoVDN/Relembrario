@@ -1,89 +1,201 @@
 <!-- src/views/HomeView.vue -->
 <template>
   <div class="home-view">
-    <!-- Sidebar à esquerda (Integrado) -->
-    <div :class="['sidebar', { 'collapsed': isCollapsed }]" class="side-menu">
-      <!-- Botão de retração (sempre visível) -->
+    <!-- Sidebar à esquerda -->
+    <div :class="['sidebar', { 'collapsed': isCollapsed }]">
+      <!-- Botão de retração -->
       <button @click="toggleSidebar" class="toggle-btn">
         <i class="bi" :class="isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
       </button>
 
       <!-- Header com o nome e imagem de perfil -->
       <div class="header text-center my-4">
-        <img src="path/to/profile-image.jpg" alt="Profile" class="profile-image mb-2" />
-        <h5 v-if="!isCollapsed" class="username">Fulano de Tal</h5>
+        <img
+          :src="profilePictureUrl || defaultProfileImage"
+          alt="Profile"
+          class="profile-image mb-2"
+        />
+        <h5 v-if="!isCollapsed" class="username">{{ displayName || userName }}</h5>
       </div>
 
       <!-- Campo de Pesquisa -->
-      <div v-if="!isCollapsed" class="search px-3 mb-3">
-        <input type="text" v-model="searchQuery" class="form-control" placeholder="Pesquisar" />
+      <div v-if="!isCollapsed && !showProfile" class="search px-3 mb-3">
+        <input
+          type="text"
+          v-model="searchQuery"
+          class="form-control"
+          placeholder="Pesquisar"
+        />
       </div>
 
       <!-- Botões de ação -->
       <div v-if="!isCollapsed" class="actions px-3 mb-3">
-        <div class="mb-3 align-items-center">  
-          <add-tag-component @tag-added="handleTagAdded" />
-          <div class="mb-3">
-            <add-memory-modal ref="addMemoryModal" @memory-added="refreshMemories" />
+        <div class="mb-3 align-items-center">
+          <!-- Mostrar botões somente quando na visualização das memórias -->
+          <div v-if="!showProfile">
+            <add-tag-component @tag-added="handleTagAdded" />
+            <div class="mb-3">
+              <add-memory-modal ref="addMemoryModal" @memory-added="refreshMemories" />
+
+            </div>
           </div>
-          <router-link to="/logout" class="ml-auto">
+          <!-- Botão "Meu Perfil" ou "Voltar" -->
+          <button @click="toggleProfile" class="btn btn-primary mb-2">
+            {{ showProfile ? 'Voltar' : 'Meu Perfil' }}
+          </button>
+          <router-link to="/logout">
             <button type="button" class="btn btn-danger">Sair</button>
           </router-link>
         </div>
       </div>
 
-      <!-- Lista de Categorias -->
-      <div class="categories px-3">
+      <!-- Lista de Categorias (exibir somente na visualização das memórias) -->
+      <div v-if="!isCollapsed && !showProfile" class="categories px-3">
         <ul class="list-group">
           <li
             v-for="(categoria, index) in categorias"
             :key="index"
             class="list-group-item d-flex justify-content-between align-items-center"
           >
-            <span v-if="!isCollapsed">{{ categoria }}</span>
+            <span>{{ categoria }}</span>
+            <!-- Ícone de exemplo -->
             <i v-if="categoria === 'Categoria 2'" class="bi bi-grid-fill"></i>
           </li>
         </ul>
       </div>
     </div>
 
-    <!-- Conteúdo das Memórias -->
+    <!-- Conteúdo principal -->
     <div class="content">
-      <h1 class="mb-4">Minhas Lembranças</h1>
+      <!-- Exibir o título conforme a visualização atual -->
+      <h1 class="mb-4">
+        {{ showProfile ? 'Meu Perfil' : 'Minhas Lembranças' }}
+      </h1>
 
-      <!-- Lista de Memórias -->
-      <div class="memories-list">
-        <card-memory @open-add-memory="openAddMemoryModal" ref="cardMemory" />
+      <!-- Exibir o componente de perfil ou a lista de memórias -->
+      <div v-if="showProfile">
+        <!-- Componente de perfil integrado -->
+        <user-profile @profile-updated="handleProfileUpdated" />
       </div>
+      <div v-else>
+        <!-- Conteúdo das memórias integrado -->
+        <div class="lembrancas-container">
+          <!-- Estado de Carregamento -->
+          <div v-if="isLoading" class="text-center">
+            <p>Carregando lembranças...</p>
+          </div>
+
+          <!-- Estado de Erro -->
+          <div v-else-if="error" class="text-center">
+            <p>Não foi possível carregar as lembranças.</p>
+          </div>
+
+          <!-- Estado Sem Memórias -->
+          <div v-else-if="lembrancas.length === 0" class="text-center">
+            <p>Não há lembranças.</p>
+            <!-- Botão "Adicionar Memória" aparece somente quando não há memórias -->
+            <button @click="openAddMemoryModal" class="btn btn-primary mt-3">
+              Adicionar Memória
+            </button>
+          </div>
+
+          <!-- Lista de Memórias -->
+          <div v-else>
+            <div
+              v-for="lembranca in lembrancas"
+              :key="lembranca.id"
+              class="card shadow-sm mb-4"
+            >
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h5 class="card-title">{{ lembranca.titulo }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">
+                      {{ formatDate(lembranca.data_evento) }}
+                    </h6>
+                  </div>
+                  <div>
+                    <!-- Componentes de edição e exclusão -->
+                    <edit-memory-modal
+                      :memory="lembranca"
+                      @memory-edited="fetchLembrancas"
+                    />
+                    <delete-memory-component
+                      :memoryId="lembranca.id"
+                      @memory-deleted="fetchLembrancas"
+                    />
+                  </div>
+                </div>
+                <p class="card-text">{{ lembranca.descricao }}</p>
+                <p class="card-text"><strong>Local:</strong> {{ lembranca.local }}</p>
+                <div v-if="lembranca.imagem" class="image mb-3">
+                  <img
+                    :src="lembranca.imagem"
+                    alt="Imagem da lembrança"
+                    class="img-fluid rounded"
+                  />
+                </div>
+                <div v-if="lembranca.destaque" class="mb-2">
+                  <span class="badge bg-warning text-dark">Destaque</span>
+                </div>
+                <div class="tags">
+                  <span
+                    v-for="tag in lembranca.tagsNames"
+                    :key="tag"
+                    class="badge bg-primary me-1"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modais -->
+  
     </div>
   </div>
 </template>
 
 <script>
-import CardMemory from "@/components/CardMemory.vue";
 import AddMemoryModal from "@/components/AddMemoryModal.vue";
 import AddTagComponent from "@/components/AddTagComponent.vue";
+import UserProfile from "@/components/UserProfile.vue";
+import DeleteMemoryComponent from "@/components/DeleteMemoryComponent.vue";
+import EditMemoryModal from "@/components/EditMemoryModal.vue";
+import http from "@/services/http";
+import defaultProfileImage from "@/assets/default-profile.png";
 
 export default {
   name: "HomeView",
   components: {
-    CardMemory,
     AddMemoryModal,
     AddTagComponent,
+    UserProfile,
+    DeleteMemoryComponent,
+    EditMemoryModal,
   },
   data() {
     return {
       searchQuery: "",
       isCollapsed: false,
       categorias: ["Categoria 0", "Categoria 1", "Categoria 2", "Categoria 3"],
+      showProfile: false,
+      profilePictureUrl: null,
+      displayName: "",
+      userName: "",
+      defaultProfileImage,
+      // Dados das memórias
+      lembrancas: [],
+      isLoading: false,
+      error: false,
     };
   },
   methods: {
     refreshMemories() {
-      // Atualiza a lista de memórias chamando o método fetchLembrancas do CardMemory
-      if (this.$refs.cardMemory) {
-        this.$refs.cardMemory.fetchLembrancas();
-      }
+      this.fetchLembrancas();
       console.log("Memória adicionada. Lista de memórias atualizada.");
     },
     handleTagAdded() {
@@ -93,16 +205,75 @@ export default {
       this.isCollapsed = !this.isCollapsed;
     },
     openAddMemoryModal() {
-      // Abre o modal de adicionar memória
       if (this.$refs.addMemoryModal) {
         this.$refs.addMemoryModal.openModal();
       }
     },
+    toggleProfile() {
+      this.showProfile = !this.showProfile;
+    },
+    handleProfileUpdated() {
+      this.fetchUserProfile();
+    },
+    async fetchUserProfile() {
+      try {
+        const response = await http.get("/profile/");
+        const user = response.data;
+        this.userName = user.username;
+        this.displayName = user.profile ? user.profile.display_name : "";
+        this.profilePictureUrl = user.profile ? user.profile.profile_picture : null;
+      } catch (error) {
+        console.error("Erro ao buscar perfil do usuário:", error);
+      }
+    },
+    // Métodos das memórias
+    formatDate(date) {
+      const options = { year: "numeric", month: "long", day: "numeric" };
+      return new Date(date).toLocaleDateString("pt-BR", options);
+    },
+    fetchTagName(tagId) {
+      return http
+        .get(`/tags/${tagId}/`)
+        .then((response) => response.data.nome)
+        .catch((error) => {
+          console.error(`Erro ao buscar a tag de ID ${tagId}:`, error);
+          return `Tag ${tagId}`;
+        });
+    },
+    async fetchLembrancas() {
+      this.isLoading = true;
+      this.error = false;
+      try {
+        const response = await http.get("/lembrancas/");
+        const lembrancas = response.data;
+
+        const updatedLembrancas = await Promise.all(
+          lembrancas.map(async (lembranca) => {
+            const tagsNames = await Promise.all(
+              lembranca.tags.map((tagId) => this.fetchTagName(tagId))
+            );
+            return { ...lembranca, tagsNames };
+          })
+        );
+
+        this.lembrancas = updatedLembrancas;
+      } catch (error) {
+        console.error("Erro ao buscar lembranças:", error);
+        this.error = true;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+  },
+  mounted() {
+    this.fetchUserProfile();
+    this.fetchLembrancas();
   },
 };
 </script>
 
 <style scoped>
+/* Estilos existentes */
 .home-view {
   display: flex;
   min-height: 100vh;
@@ -142,6 +313,7 @@ export default {
   width: 80px;
   height: 80px;
   border-radius: 50%;
+  object-fit: cover;
 }
 
 .username {
@@ -161,6 +333,8 @@ export default {
 .actions .btn {
   background-color: #495057;
   border: none;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 .categories .btn-danger {
@@ -226,5 +400,42 @@ h1 {
   .collapsed {
     width: 100%;
   }
+}
+
+/* Estilos do CardMemory.vue */
+.lembrancas-container {
+  padding: 20px;
+}
+.card {
+  border: none;
+}
+.card-title {
+  font-size: 1.25rem;
+  color: #007bff;
+}
+.card-subtitle {
+  font-size: 0.9rem;
+}
+.card-text {
+  color: #333;
+}
+.image img {
+  max-height: 200px;
+  object-fit: cover;
+}
+.tags {
+  margin-top: 10px;
+}
+.badge {
+  font-size: 0.8rem;
+}
+.text-center {
+  text-align: center;
+}
+.btn-primary {
+  /* Personalize conforme necessário */
+}
+.mt-3 {
+  margin-top: 1rem;
 }
 </style>
