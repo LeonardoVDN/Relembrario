@@ -182,7 +182,6 @@
           this.resetForm();
   
           this.$emit("memory-added");
-          alert("Memória adicionada com sucesso!");
         } catch (error) {
           console.error("Erro ao adicionar memória:", error);
           alert(error.message);
