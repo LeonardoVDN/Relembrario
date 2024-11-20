@@ -36,11 +36,6 @@
 
     <!-- Sidebar à esquerda -->
     <div :class="['sidebar', { collapsed: isCollapsed }]">
-      <!-- Botão de retração -->
-      <button @click="toggleSidebar" class="toggle-btn">
-        <i class="bi" :class="isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
-      </button>
-
       <!-- Header com o nome e imagem de perfil -->
       <div class="header text-center my-4">
         <img
@@ -48,11 +43,11 @@
           alt="Profile"
           class="profile-image mb-2"
         />
-        <h5 v-if="!isCollapsed" class="username">{{ displayName || userName }}</h5>
+        <h5 class="username">{{ displayName || userName }}</h5>
       </div>
 
       <!-- Campo de Pesquisa -->
-      <div v-if="!isCollapsed && !showProfile" class="search px-3 mb-3">
+      <div class="search px-3 mb-3">
         <input
           type="text"
           v-model="searchQuery"
@@ -62,7 +57,7 @@
       </div>
 
       <!-- Botões de ação -->
-      <div v-if="!isCollapsed" class="actions px-3 mb-3">
+      <div class="actions px-3 mb-3">
         <div class="mb-3 align-items-center">
           <!-- Mostrar botões somente quando na visualização das memórias -->
           <div v-if="!showProfile">
@@ -93,24 +88,30 @@
         </div>
       </div>
 
-      <!-- Lista de Categorias (exibir somente na visualização das memórias) -->
-      <div v-if="!isCollapsed && !showProfile" class="categories px-3">
+      <!-- Lista de Tags (Categorias) -->
+      <div class="categories px-3">
+        <h5 class="text-white">Tags</h5>
         <ul class="list-group">
           <li
-            v-for="(categoria, index) in categorias"
-            :key="index"
-            class="list-group-item d-flex justify-content-between align-items-center"
+            v-for="tag in tags"
+            :key="tag.id"
+            :class="[
+              'list-group-item',
+              'd-flex',
+              'justify-content-between',
+              'align-items-center',
+              { active: selectedTag === tag.id },
+            ]"
+            @click="selectTag(tag.id)"
           >
-            <span>{{ categoria }}</span>
-            <!-- Ícone de exemplo -->
-            <i v-if="categoria === 'Categoria 2'" class="bi bi-grid-fill"></i>
+            <span>{{ tag.nome }}</span>
           </li>
         </ul>
       </div>
     </div>
 
     <!-- Conteúdo principal -->
-    <div :class="['content', { 'collapsed-content': isCollapsed }]">
+    <div :class="['content']">
       <!-- Exibir o título conforme a visualização atual -->
       <h1 class="mb-4">
         {{ showProfile ? 'Meu Perfil' : 'Minhas Lembranças' }}
@@ -141,8 +142,8 @@
           </div>
 
           <!-- Estado Sem Memórias -->
-          <div v-else-if="lembrancas.length === 0" class="text-center">
-            <p>Não há lembranças.</p>
+          <div v-else-if="filteredLembrancas.length === 0" class="text-center">
+            <p>Nenhuma lembrança encontrada.</p>
             <!-- Botão "Adicionar Memória" aparece somente quando não há memórias -->
             <button @click="openAddMemoryModal" class="btn btn-primary mt-3">
               Adicionar Memória
@@ -152,7 +153,7 @@
           <!-- Lista de Memórias -->
           <div v-else class="inter-container">
             <div
-              v-for="lembranca in lembrancas"
+              v-for="lembranca in filteredLembrancas"
               :key="lembranca.id"
               class="card shadow-sm mb-4"
             >
@@ -240,7 +241,7 @@ import AddTagComponent from "@/components/AddTagComponent.vue";
 import UserProfile from "@/components/UserProfile.vue";
 import DeleteMemoryComponent from "@/components/DeleteMemoryComponent.vue";
 import EditMemoryModal from "@/components/EditMemoryModal.vue";
-import ViewMemoryModal from "@/components/ViewMemoryModal.vue"; // Importação do novo componente
+import ViewMemoryModal from "@/components/ViewMemoryModal.vue";
 import http from "@/services/http";
 import defaultProfileImage from "@/assets/default-profile.png";
 
@@ -252,13 +253,13 @@ export default {
     UserProfile,
     DeleteMemoryComponent,
     EditMemoryModal,
-    ViewMemoryModal, // Adicionado à lista de componentes
+    ViewMemoryModal,
   },
   data() {
     return {
       searchQuery: "",
-      isCollapsed: false,
-      categorias: ["Categoria 0", "Categoria 1", "Categoria 2", "Categoria 3"],
+      tags: [],
+      selectedTag: null,
       showProfile: false,
       profilePictureUrl: null,
       displayName: "",
@@ -273,7 +274,37 @@ export default {
       errorMessage: "",
     };
   },
+  computed: {
+    filteredLembrancas() {
+      let memories = this.lembrancas;
+
+      // Filtrar por título
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        memories = memories.filter((lembranca) =>
+          lembranca.titulo.toLowerCase().includes(query)
+        );
+      }
+
+      // Filtrar por tag selecionada
+      if (this.selectedTag) {
+        memories = memories.filter((lembranca) =>
+          lembranca.tags.includes(this.selectedTag)
+        );
+      }
+
+      return memories;
+    },
+  },
   methods: {
+    // Seleciona ou deseleciona uma tag
+    selectTag(tagId) {
+      if (this.selectedTag === tagId) {
+        this.selectedTag = null; // Deseleciona se já estiver selecionada
+      } else {
+        this.selectedTag = tagId;
+      }
+    },
     // Atualiza as memórias e define uma mensagem de sucesso
     refreshMemories() {
       this.fetchLembrancas();
@@ -282,7 +313,7 @@ export default {
     // Manipula o evento de tag adicionada com sucesso
     handleTagAdded(message) {
       this.setSuccessMessage(message || "Tag adicionada com sucesso!");
-      console.log("Tag adicionada. Atualizar tags disponíveis.");
+      this.fetchTags(); // Atualiza a lista de tags
     },
     // Manipula o evento de erro ao adicionar uma tag
     handleTagAddError(error) {
@@ -291,6 +322,7 @@ export default {
     // Manipula o evento de edição de tag com sucesso
     handleTagEditSuccess(message) {
       this.setSuccessMessage(message || "Tag atualizada com sucesso!");
+      this.fetchTags(); // Atualiza a lista de tags
     },
     // Manipula o evento de erro ao editar uma tag
     handleTagEditError(error) {
@@ -299,6 +331,7 @@ export default {
     // Manipula o evento de exclusão de tag com sucesso
     handleTagDeleteSuccess(message) {
       this.setSuccessMessage(message || "Tag excluída com sucesso!");
+      this.fetchTags(); // Atualiza a lista de tags
     },
     // Manipula o evento de erro ao excluir uma tag
     handleTagDeleteError(error) {
@@ -327,7 +360,6 @@ export default {
     },
     // Manipula o evento de memória deletada com sucesso
     handleMemoryDeleted(memoryId) {
-      // Opcional: Pode ser usado para lógica adicional se necessário
       this.setSuccessMessage("Memória excluída com sucesso!");
       this.fetchLembrancas();
     },
@@ -341,7 +373,6 @@ export default {
     },
     // Manipula o evento de memória visualizada com sucesso
     handleMemoryViewed() {
-      // Opcional: Pode adicionar lógica para quando uma memória é visualizada
       this.setSuccessMessage("Memória visualizada com sucesso!");
     },
     // Manipula o evento de erro ao visualizar uma memória
@@ -356,10 +387,6 @@ export default {
     // Manipula o evento de erro ao atualizar o perfil
     handleProfileUpdateError(error) {
       this.setErrorMessage(error || "Erro ao atualizar o perfil.");
-    },
-    // Alterna a retração da sidebar
-    toggleSidebar() {
-      this.isCollapsed = !this.isCollapsed;
     },
     // Abre o modal de adicionar memória
     openAddMemoryModal() {
@@ -382,7 +409,6 @@ export default {
     // Define a mensagem de sucesso e agenda a limpeza automática após 5 segundos
     setSuccessMessage(message) {
       this.successMessage = message;
-      // Limpar a mensagem após 5 segundos
       setTimeout(() => {
         this.clearSuccessMessage();
       }, 5000);
@@ -390,7 +416,6 @@ export default {
     // Define a mensagem de erro e agenda a limpeza automática após 5 segundos
     setErrorMessage(message) {
       this.errorMessage = message;
-      // Limpar a mensagem após 5 segundos
       setTimeout(() => {
         this.clearErrorMessage();
       }, 5000);
@@ -402,7 +427,9 @@ export default {
         const user = response.data;
         this.userName = user.username;
         this.displayName = user.profile ? user.profile.display_name : "";
-        this.profilePictureUrl = user.profile ? user.profile.profile_picture : null;
+        this.profilePictureUrl = user.profile
+          ? user.profile.profile_picture
+          : null;
       } catch (error) {
         console.error("Erro ao buscar perfil do usuário:", error);
         this.setErrorMessage("Não foi possível carregar o perfil do usuário.");
@@ -413,15 +440,20 @@ export default {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date(date).toLocaleDateString("pt-BR", options);
     },
-    // Busca o nome da tag pelo ID
+    // Busca as tags do sistema
+    async fetchTags() {
+      try {
+        const response = await http.get("/tags/");
+        this.tags = response.data; // Supondo que response.data é um array de objetos de tags
+      } catch (error) {
+        console.error("Erro ao buscar tags:", error);
+        this.setErrorMessage("Não foi possível carregar as tags.");
+      }
+    },
+    // Busca o nome da tag pelo ID (modificado para usar as tags já carregadas)
     fetchTagName(tagId) {
-      return http
-        .get(`/tags/${tagId}/`)
-        .then((response) => response.data.nome)
-        .catch((error) => {
-          console.error(`Erro ao buscar a tag de ID ${tagId}:`, error);
-          return `Tag ${tagId}`;
-        });
+      const tag = this.tags.find((tag) => tag.id === tagId);
+      return tag ? tag.nome : `Tag ${tagId}`;
     },
     // Busca as memórias do usuário
     async fetchLembrancas() {
@@ -431,14 +463,12 @@ export default {
         const response = await http.get("/lembrancas/");
         const lembrancas = response.data;
 
-        const updatedLembrancas = await Promise.all(
-          lembrancas.map(async (lembranca) => {
-            const tagsNames = await Promise.all(
-              lembranca.tags.map((tagId) => this.fetchTagName(tagId))
-            );
-            return { ...lembranca, tagsNames };
-          })
-        );
+        const updatedLembrancas = lembrancas.map((lembranca) => {
+          const tagsNames = lembranca.tags.map((tagId) =>
+            this.fetchTagName(tagId)
+          );
+          return { ...lembranca, tagsNames };
+        });
 
         this.lembrancas = updatedLembrancas;
       } catch (error) {
@@ -452,7 +482,9 @@ export default {
   },
   mounted() {
     this.fetchUserProfile();
-    this.fetchLembrancas();
+    this.fetchTags().then(() => {
+      this.fetchLembrancas();
+    });
   },
 };
 </script>
@@ -486,10 +518,6 @@ export default {
   transition: width 0.3s;
   overflow: hidden;
   position: relative;
-}
-
-.collapsed {
-  width: 60px;
 }
 
 .toggle-btn {
@@ -546,10 +574,16 @@ export default {
   background-color: #495057;
   border: none;
   color: #fff;
+  cursor: pointer;
 }
 
 .list-group-item:hover {
   background-color: #6c757d;
+}
+
+.list-group-item.active {
+  background-color: #007bff;
+  color: #fff;
 }
 
 .bi {
@@ -560,12 +594,7 @@ export default {
   flex-grow: 1;
   padding: 20px;
   background-color: #f8f9fa;
-  margin-left: 250px; /* Ajuste para espaço da sidebar */
   transition: margin-left 0.3s;
-}
-
-.collapsed + .content {
-  margin-left: 60px; /* Ajuste para sidebar colapsada */
 }
 
 h1 {
@@ -587,11 +616,6 @@ h1 {
   margin-left: auto;
 }
 
-/* Ajustes para conteúdo quando a sidebar estiver colapsada */
-.sidebar.collapsed + .content {
-  margin-left: 60px;
-}
-
 @media (max-width: 768px) {
   .home-view {
     flex-direction: column;
@@ -601,10 +625,6 @@ h1 {
     min-width: 100%;
     width: 100%;
     height: auto;
-  }
-
-  .collapsed {
-    width: 100%;
   }
 
   .content {

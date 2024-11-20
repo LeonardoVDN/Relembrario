@@ -1,22 +1,30 @@
+# serializers.py
+
 from rest_framework import serializers
-from relembrario.models import Lembrancas, Tag
+from relembrario.models import Lembrancas, Tag, Profile
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.models import User
 from .models import Profile
 
+
 class ProfileSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = Profile
-        fields = ['display_name', 'profile_picture']  # Inclua os campos necessários
+        fields = ['display_name', 'profile_picture']
 
 class UserSerializer(serializers.ModelSerializer):
-    profile = ProfileSerializer(required=False)  # Adicione o serializer de Profile
+    profile = ProfileSerializer(required=False, allow_null=True)
+    password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
+    new_password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'profile']
+        fields = ['username', 'email', 'profile', 'password', 'new_password']
+        read_only_fields = ['username']
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
@@ -27,7 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        # Alterar senha se fornecida
+        # Atualizar senha se fornecida
         if password and new_password:
             if instance.check_password(password):
                 instance.set_password(new_password)
@@ -37,10 +45,14 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
 
         # Atualizar campos do perfil
-        profile = instance.profile
-        for attr, value in profile_data.items():
-            setattr(profile, attr, value)
-        profile.save()
+        profile = getattr(instance, 'profile', None)
+        if profile_data:
+            if not profile:
+                # Se o profile não existir, crie um novo
+                profile = Profile.objects.create(user=instance)
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
 
         return instance
 
@@ -64,7 +76,6 @@ class TagSerializer(serializers.ModelSerializer):
         validated_data['usuario'] = self.context['request'].user
         return super().create(validated_data)
 
-
 class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         required=True,
@@ -77,6 +88,9 @@ class RegisterSerializer(serializers.ModelSerializer):
     )
     password2 = serializers.CharField(write_only=True, required=True)
 
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = User
         fields = ('username', 'password', 'password2', 'email', 'first_name', 'last_name')
@@ -87,12 +101,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        user = User.objects.create(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name']
-        )
-        user.set_password(validated_data['password'])
+        validated_data.pop('password2', None)
+        password = validated_data.pop('password')
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
         user.save()
+        # Opcional: criar perfil automaticamente
+        Profile.objects.create(user=user)
         return user

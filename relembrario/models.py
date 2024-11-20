@@ -30,3 +30,13 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.username
+
+
+class Amizade(models.Model):
+    solicitante = models.ForeignKey(User, related_name='amizades_iniciadas', on_delete=models.CASCADE)
+    amigo = models.ForeignKey(User, related_name='amizades_recebidas', on_delete=models.CASCADE)
+    data_solicitacao = models.DateTimeField(auto_now_add=True)
+    aceito = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.solicitante.username} é amigo de {self.amigo.username}' if self.aceito else f'Solicitação pendente entre {self.solicitante.username} e {self.amigo.username}'
