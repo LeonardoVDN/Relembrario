@@ -1,6 +1,10 @@
 
 # Welcome to Relembrário
 
+## Demo
+
+![Project Demo](assets/demo.gif)
+
 Relembrário is a project developed in collaboration with the Universidade do Sagrado Coração in Bauru-SP (Unisagrado) by a group of four students. It serves as a comprehensive repository of memories—a space where users can document all the significant moments of their lives, including photos, descriptions, dates, and more.
 
 This README provides detailed instructions for setting up the development environment for both the back-end and front-end using WSL (Windows Subsystem for Linux).
